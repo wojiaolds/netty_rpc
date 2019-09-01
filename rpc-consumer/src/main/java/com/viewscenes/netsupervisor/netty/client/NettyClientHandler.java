@@ -35,8 +35,9 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private ConcurrentHashMap<String,SynchronousQueue<Object>> queueMap = new ConcurrentHashMap<>();
-
+    //客户端启动成功会执行此方法
     public void channelActive(ChannelHandlerContext ctx)   {
+
         logger.info("已连接到RPC服务器.{}",ctx.channel().remoteAddress());
     }
 
@@ -47,6 +48,7 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
         connectManage.removeChannel(ctx.channel());
     }
     public void channelRead(ChannelHandlerContext ctx, Object msg)throws Exception {
+        //接受服务端响应消息
         Response response = JSON.parseObject(msg.toString(),Response.class);
         String requestId = response.getRequestId();
         SynchronousQueue<Object> queue = queueMap.get(requestId);
@@ -55,6 +57,8 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
     }
 
     public SynchronousQueue<Object> sendRequest(Request request,Channel channel) {
+        //同步队列，严格意义上是没有缓存空间的对列，主要起阻塞作用
+        //这个队列会返回出去，出现了逃逸，对象会存储到堆中
         SynchronousQueue<Object> queue = new SynchronousQueue<>();
         queueMap.put(request.getId(), queue);
         channel.writeAndFlush(request);

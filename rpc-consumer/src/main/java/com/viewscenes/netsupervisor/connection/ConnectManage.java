@@ -24,9 +24,12 @@ public class ConnectManage{
 
     Logger logger = LoggerFactory.getLogger(this.getClass());
     private AtomicInteger roundRobin = new AtomicInteger(0);
+    private ConcurrentHashMap<String,CopyOnWriteArrayList<Channel>> chlHashMap
+            = new ConcurrentHashMap<>();
     private CopyOnWriteArrayList<Channel> channels = new CopyOnWriteArrayList<>();
     private Map<SocketAddress, Channel> channelNodes = new ConcurrentHashMap<>();
 
+    //这里有待完善，根据服务名获取相应的地址。node对应服务名
     public  Channel chooseChannel() {
         if (channels.size()>0) {
             int size = channels.size();

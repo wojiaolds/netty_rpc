@@ -40,6 +40,7 @@ public class RpcFactory<T> implements InvocationHandler {
         request.setParameterTypes(method.getParameterTypes());
         request.setId(IdUtil.getId());
 
+        //发送消息
         Object result = client.send(request);
         Class<?> returnType = method.getReturnType();
 

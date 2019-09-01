@@ -29,6 +29,7 @@ public class ServiceDiscovery {
 
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    //初始化
     @PostConstruct
     public void init(){
         client = connectServer();
@@ -36,11 +37,12 @@ public class ServiceDiscovery {
             watchNode(client);
         }
     }
-
+    //
     private ZkClient connectServer() {
         ZkClient client = new ZkClient(registryAddress,20000,20000);
         return client;
     }
+    //监听子节点的变化
     private void watchNode(final ZkClient client) {
         List<String> nodeList = client.subscribeChildChanges(ZK_REGISTRY_PATH, (s, nodes) -> {
             logger.info("监听到子节点数据变化{}",JSONObject.toJSONString(nodes));
@@ -53,8 +55,10 @@ public class ServiceDiscovery {
         updateConnectedServer();
     }
     private void updateConnectedServer(){
+        //一个服务器创建一个链接
         connectManage.updateConnectServer(addressList);
     }
+
 
     private void getNodeData(List<String> nodes){
         logger.info("/rpc子节点数据为:{}", JSONObject.toJSONString(nodes));

@@ -49,6 +49,7 @@ public class ClassPathRpcScanner extends ClassPathBeanDefinitionScanner{
     public void registerFilters() {
         boolean acceptAllInterfaces = true;
 
+        //根据注解过滤出加了注解的类
         if (this.annotationClass != null) {
             addIncludeFilter(new AnnotationTypeFilter(this.annotationClass));
             acceptAllInterfaces = false;
@@ -84,9 +85,11 @@ public class ClassPathRpcScanner extends ClassPathBeanDefinitionScanner{
         for (BeanDefinitionHolder holder : beanDefinitions) {
 
             definition = (GenericBeanDefinition) holder.getBeanDefinition();
-            definition.getConstructorArgumentValues().addGenericArgumentValue(definition.getBeanClassName());
-            definition.setBeanClass(this.rpcFactoryBean.getClass());
 
+            definition.getConstructorArgumentValues().addGenericArgumentValue(definition.getBeanClassName());
+            //替换beanclass
+            definition.setBeanClass(this.rpcFactoryBean.getClass());
+            //设置属性值调用set方法自动注入，
             definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
             System.out.println(holder);
         }

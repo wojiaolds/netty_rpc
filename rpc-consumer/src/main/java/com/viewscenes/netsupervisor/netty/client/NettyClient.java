@@ -75,6 +75,7 @@ public class NettyClient {
         Channel channel = connectManage.chooseChannel();
         if (channel!=null && channel.isActive()) {
             SynchronousQueue<Object> queue = clientHandler.sendRequest(request,channel);
+            //一直阻塞，直到有数据
             Object result = queue.take();
             return JSONArray.toJSONString(result);
         }else{

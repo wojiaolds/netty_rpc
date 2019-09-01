@@ -1,5 +1,6 @@
 package com.viewscenes.netsupervisor.service;
 
+import com.viewscenes.netsupervisor.annotation.RpcService;
 import com.viewscenes.netsupervisor.entity.InfoUser;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Map;
  * @author: shiqizhen
  * @create: 2018-11-30 16:53
  **/
+@RpcService
 public interface InfoUserService {
 
     List<InfoUser> insertInfoUser(InfoUser infoUser);
