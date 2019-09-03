@@ -17,6 +17,9 @@ public class ServiceRegistry {
 
     @Value("${registry.address}")
     private String registryAddress;
+    
+    @Value ("${spring.discovery.serviceName}")
+    private String serviceName;
 
     private static final String ZK_REGISTRY_PATH = "/rpc";
 
@@ -35,15 +38,17 @@ public class ServiceRegistry {
     }
 
     private void AddRootNode(ZkClient client){
-        boolean exists = client.exists(ZK_REGISTRY_PATH);
+        boolean exists = client.exists(ZK_REGISTRY_PATH + "/"+serviceName);
         if (!exists){
-            client.createPersistent(ZK_REGISTRY_PATH);
-            logger.info("创建zookeeper主节点 {}",ZK_REGISTRY_PATH);
+            client.createPersistent(ZK_REGISTRY_PATH + "/"+serviceName);
+            logger.info("创建zookeeper主节点 {}",ZK_REGISTRY_PATH + "/"+serviceName);
         }
     }
 
     private void createNode(ZkClient client, String data) {
-        String path = client.create(ZK_REGISTRY_PATH + "/provider", data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
-        logger.info("创建zookeeper数据节点 ({} => {})", path, data);
+        String path= ZK_REGISTRY_PATH + "/"+serviceName+"/"+data;
+        client.createEphemeral (path);
+//       String path = client.create(ZK_REGISTRY_PATH + "/"+serviceName, data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+        logger.info("创建zookeeper临时节点 [{}]", path);
     }
 }

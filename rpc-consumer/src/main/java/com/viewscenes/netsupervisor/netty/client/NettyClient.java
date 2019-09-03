@@ -70,9 +70,9 @@ public class NettyClient {
         group.shutdownGracefully();
     }
 
-    public Object send(Request request) throws InterruptedException{
+    public Object send(Request request,String serviceName) throws InterruptedException{
 
-        Channel channel = connectManage.chooseChannel();
+        Channel channel = connectManage.loadBanlance(serviceName);
         if (channel!=null && channel.isActive()) {
             SynchronousQueue<Object> queue = clientHandler.sendRequest(request,channel);
             //一直阻塞，直到有数据

@@ -68,17 +68,23 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
      * @throws Throwable
      */
     private Object handler(Request request) throws Throwable{
+        //获取接口名
         String className = request.getClassName();
+        //获取实现类
         Object serviceBean = serviceMap.get(className);
 
         if (serviceBean!=null){
             Class<?> serviceClass = serviceBean.getClass();
+            //获取方法名
             String methodName = request.getMethodName();
+            //获取参数类型
             Class<?>[] parameterTypes = request.getParameterTypes();
+            //获取参数值，参数
             Object[] parameters = request.getParameters();
-
+            //获取方法对象
             Method method = serviceClass.getMethod(methodName, parameterTypes);
             method.setAccessible(true);
+            //反射调用方法
             return method.invoke(serviceBean, getParameters(parameterTypes,parameters));
         }else{
             throw new Exception("未找到服务接口,请检查配置!:"+className+"#"+request.getMethodName());
@@ -97,6 +103,7 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
         }else{
             Object[] new_parameters = new Object[parameters.length];
             for(int i=0;i<parameters.length;i++){
+                //反序列化得到参数对象
                 new_parameters[i] = JSON.parseObject(parameters[i].toString(),parameterTypes[i]);
             }
             return new_parameters;

@@ -6,6 +6,7 @@ public class Request {
 
 
     private String id;
+    //数据传到服务端根据类名找到对应service
     private String className;// 类名
     private String methodName;// 函数名称
     private Class<?>[] parameterTypes;// 参数类型

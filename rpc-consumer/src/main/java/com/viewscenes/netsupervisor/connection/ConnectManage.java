@@ -9,12 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Component
 public class ConnectManage{
@@ -24,13 +23,21 @@ public class ConnectManage{
 
     Logger logger = LoggerFactory.getLogger(this.getClass());
     private AtomicInteger roundRobin = new AtomicInteger(0);
-    private ConcurrentHashMap<String,CopyOnWriteArrayList<Channel>> chlHashMap
-            = new ConcurrentHashMap<>();
-    private CopyOnWriteArrayList<Channel> channels = new CopyOnWriteArrayList<>();
-    private Map<SocketAddress, Channel> channelNodes = new ConcurrentHashMap<>();
-
+    //服务名与所有channel的映射集合
+//    private ConcurrentHashMap<String,CopyOnWriteArrayList<Channel>> chlHashMap
+//            = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<Channel,String> chlHashMap
+        = new ConcurrentHashMap<>();
+//    private CopyOnWriteArrayList<Channel> channels = new CopyOnWriteArrayList<>();
+    //所有SocketAddress和channel的映射集合
+    private ConcurrentHashMap<Channel,String> channelNodes = new ConcurrentHashMap<>();
+    
     //这里有待完善，根据服务名获取相应的地址。node对应服务名
-    public  Channel chooseChannel() {
+    public  Channel loadBanlance(String serviceName) {
+        List<Channel> channels =    chlHashMap.entrySet ().stream ()
+            .filter (e->e.getValue ()==serviceName)
+            .map(x->x.getKey ())
+            .collect(Collectors.toList ());
         if (channels.size()>0) {
             int size = channels.size();
             int index = (roundRobin.getAndAdd(1) + size) % size;
@@ -40,71 +47,104 @@ public class ConnectManage{
         }
     }
 
-    public synchronized void updateConnectServer(List<String> addressList){
-        if (addressList.size()==0 || addressList==null){
-            logger.error("没有可用的服务器节点, 全部服务节点已关闭!");
-            for (final Channel channel : channels) {
-                SocketAddress remotePeer = channel.remoteAddress();
-                Channel handler_node = channelNodes.get(remotePeer);
-                handler_node.close();
+    public synchronized void updateConnectServer( HashMap<String,List<String>> map ){
+    
+        for ( Map.Entry<String,List<String>> entry:map.entrySet () ) {
+            List<String> addressList = entry.getValue ();
+            
+            List<Channel> listChl =    chlHashMap.entrySet ().stream ()
+                .filter (e->e.getValue ()==entry.getKey ())
+                .map(x->x.getKey ())
+                .collect(Collectors.toList ());
+            if(listChl == null) {
+                listChl = new ArrayList<>();
             }
-            channels.clear();
-            channelNodes.clear();
-            return;
-        }
-        HashSet<SocketAddress> newAllServerNodeSet = new HashSet<>();
-        for (int i = 0; i < addressList.size(); ++i) {
-            String[] array = addressList.get(i).split(":");
-            if (array.length == 2) {
-                String host = array[0];
-                int port = Integer.parseInt(array[1]);
-                final SocketAddress remotePeer = new InetSocketAddress(host, port);
-                newAllServerNodeSet.add(remotePeer);
-            }
-        }
-
-        for (final SocketAddress serverNodeAddress : newAllServerNodeSet) {
-            Channel channel = channelNodes.get(serverNodeAddress);
-            if (channel!=null && channel.isOpen()){
-                logger.info("当前服务节点已存在,无需重新连接.{}",serverNodeAddress);
-            }else{
-                connectServerNode(serverNodeAddress);
-            }
-        }
-        for (int i = 0; i < channels.size(); ++i) {
-            Channel channel = channels.get(i);
-            SocketAddress remotePeer = channel.remoteAddress();
-            if (!newAllServerNodeSet.contains(remotePeer)) {
-                logger.info("删除失效服务节点 " + remotePeer);
-                Channel channel_node = channelNodes.get(remotePeer);
-                if (channel_node != null) {
-                    channel_node.close();
+            
+            if (addressList == null || addressList.isEmpty () ){
+                logger.error("没有可用的服务器节点, 全部服务节点已关闭!");
+                
+                for (final Channel channel : listChl) {
+//                    SocketAddress remotePeer = channel.remoteAddress();
+//                    Channel handler_node = channelNodes.get(remotePeer);
+                    channel.close();
+                    chlHashMap.remove (channel);
+                    channelNodes.remove (channel);
                 }
-                channels.remove(channel);
-                channelNodes.remove(remotePeer);
+                return;
+            }
+            
+            HashSet<String> newAllServerNodeSet = new HashSet<>(addressList);
+//            for ( int i = 0 ; i < addressList.size () ; ++i ) {
+//                String[] array = addressList.get (i).split (":");
+//                if (array.length == 2) {
+//                    String host = array[0];
+//                    int port = Integer.parseInt (array[1]);
+//                    final SocketAddress remotePeer = new InetSocketAddress (host, port);
+//                    newAllServerNodeSet.add (remotePeer);
+//                }
+
+//            }
+    
+            for (final String serverNodeAddress : newAllServerNodeSet) {
+                Channel channel = null;
+                List<Channel> list = channelNodes.entrySet ().stream ()
+                    .filter (e->e.getValue ()==serverNodeAddress)
+                    .map(x->x.getKey ())
+                    .collect(Collectors.toList ());
+                if(list != null && !list.isEmpty ())
+                    channel = list.get (0) ;
+                
+                
+                if (channel!=null && channel.isOpen()){
+                    logger.info("当前服务节点已存在,无需重新连接.{}",serverNodeAddress);
+                }else{
+                    connectServerNode(entry.getKey (),serverNodeAddress);
+                }
+            }
+            
+            for (int i = 0; i < listChl.size(); ++i) {
+                Channel channel = listChl.get(i);
+                InetSocketAddress remotePeer = (InetSocketAddress)channel.remoteAddress();
+                System.out.println ("remotePeer.getHostString () : "+remotePeer.getHostString ());
+                if (!newAllServerNodeSet.contains(remotePeer.getHostString ()+":"+remotePeer.getPort ())) {
+                    logger.info("删除失效服务节点 " + remotePeer);
+//
+                    channel.close();
+    
+                    chlHashMap.remove(channel);
+                    channelNodes.remove(channel);
+                }
             }
         }
+       
     }
 
-    private void connectServerNode(SocketAddress address){
+    private void connectServerNode(String serviceName,String address){
         try {
-            Channel channel = nettyClient.doConnect(address);
-            addChannel(channel,address);
+            String[] array = address.split (":");
+            if (array.length == 2) {
+                String host = array[0];
+                int port = Integer.parseInt (array[1]);
+                SocketAddress remotePeer = new InetSocketAddress (host, port);
+                Channel channel = nettyClient.doConnect(remotePeer);
+                addChannel(serviceName,channel,address);
+            }
+          
         } catch (InterruptedException e) {
             e.printStackTrace();
             logger.info("未能成功连接到服务器:{}",address);
         }
     }
-    private void addChannel(Channel channel,SocketAddress address) {
+    private void addChannel(String serviceName,Channel channel,String address) {
         logger.info("加入Channel到连接管理器.{}",address);
-        channels.add(channel);
-        channelNodes.put(address, channel);
+        chlHashMap.put (channel,serviceName);
+        channelNodes.put(channel, address);
     }
 
     public void removeChannel(Channel channel){
         logger.info("从连接管理器中移除失效Channel.{}",channel.remoteAddress());
-        SocketAddress remotePeer = channel.remoteAddress();
-        channelNodes.remove(remotePeer);
-        channels.remove(channel);
+//        SocketAddress remotePeer = channel.remoteAddress();
+        channelNodes.remove(channel);
+        chlHashMap.remove(channel);
     }
 }

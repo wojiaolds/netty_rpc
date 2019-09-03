@@ -18,6 +18,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +35,7 @@ import java.util.Map;
  * @create: 2018-11-30 17:10
  **/
 @Component
-public class NettyServer implements ApplicationContextAware,InitializingBean{
+public class NettyServer implements ApplicationContextAware,InitializingBean,DisposableBean{
 
     private static final Logger logger = LoggerFactory.getLogger(NettyServer.class);
     private static final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
@@ -48,9 +49,12 @@ public class NettyServer implements ApplicationContextAware,InitializingBean{
     @Autowired
     ServiceRegistry registry;
 
+   
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-
+    
+        //从IOC容器中获取被RpcService注解的类
         Map<String, Object> beans = applicationContext.getBeansWithAnnotation(RpcService.class);
+        //保存接口和实现类的映射关系,客户端请求过来可以根据接口名找到对应的实现类，继而可以反射调用方法
         for(Object serviceBean:beans.values()){
 
             Class<?> clazz = serviceBean.getClass();
@@ -58,6 +62,7 @@ public class NettyServer implements ApplicationContextAware,InitializingBean{
             Class<?>[] interfaces = clazz.getInterfaces();
 
             for (Class<?> inter : interfaces){
+                
                 String interfaceName = inter.getName();
                 logger.info("加载服务类: {}", interfaceName);
                 serviceMap.put(interfaceName, serviceBean);
@@ -66,9 +71,7 @@ public class NettyServer implements ApplicationContextAware,InitializingBean{
         logger.info("已加载全部服务接口:{}", serviceMap);
     }
 
-    public void afterPropertiesSet() throws Exception {
-        start();
-    }
+    
 
     public void start(){
 
@@ -102,10 +105,23 @@ public class NettyServer implements ApplicationContextAware,InitializingBean{
                 //等待服务端监听端口关闭
                 cf.channel().closeFuture().sync();
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.info ("异常 "+e.getMessage ());
+               
+            }finally {
                 bossGroup.shutdownGracefully();
                 workerGroup.shutdownGracefully();
             }
         }).start();
+    }
+    
+    public void afterPropertiesSet() throws Exception {
+        start();
+    }
+    
+    @Override
+    public void destroy () throws Exception {
+        logger.info ("服务已停止");
+        bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
     }
 }

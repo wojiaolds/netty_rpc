@@ -3,6 +3,7 @@ package com.viewscenes.netsupervisor.configurer.rpc;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.viewscenes.netsupervisor.annotation.RpcService;
 import com.viewscenes.netsupervisor.entity.InfoUser;
 import com.viewscenes.netsupervisor.entity.Request;
 import com.viewscenes.netsupervisor.entity.Response;
@@ -38,10 +39,12 @@ public class RpcFactory<T> implements InvocationHandler {
         request.setMethodName(method.getName());
         request.setParameters(args);
         request.setParameterTypes(method.getParameterTypes());
+        //每一次请求的唯一ID
         request.setId(IdUtil.getId());
+        RpcService rpcService = method.getDeclaringClass().getDeclaredAnnotation (RpcService.class);
 
         //发送消息
-        Object result = client.send(request);
+        Object result = client.send(request,rpcService.name ());
         Class<?> returnType = method.getReturnType();
 
         Response response = JSON.parseObject(result.toString(), Response.class);

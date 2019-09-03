@@ -12,7 +12,7 @@ import java.util.Map;
  * @author: shiqizhen
  * @create: 2018-11-30 16:53
  **/
-@RpcService
+@RpcService(name = "netty-server")
 public interface InfoUserService {
 
     List<InfoUser> insertInfoUser(InfoUser infoUser);
