@@ -46,7 +46,7 @@ public class NettyClient {
     @Autowired
     ConnectManage connectManage;
 
-
+    //构造函数初始化启动netty客户端
     public NettyClient(){
         bootstrap.group(group).
                 channel(NioSocketChannel.class).

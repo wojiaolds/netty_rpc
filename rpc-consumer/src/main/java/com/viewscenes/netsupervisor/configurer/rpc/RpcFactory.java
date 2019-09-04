@@ -46,8 +46,9 @@ public class RpcFactory<T> implements InvocationHandler {
         //发送消息
         Object result = client.send(request,rpcService.name ());
         Class<?> returnType = method.getReturnType();
-
         Response response = JSON.parseObject(result.toString(), Response.class);
+        
+        if(response.getCode () !=1 && response.getData () == null) return null;
         if (response.getCode()==1){
             throw new Exception(response.getError_msg());
         }

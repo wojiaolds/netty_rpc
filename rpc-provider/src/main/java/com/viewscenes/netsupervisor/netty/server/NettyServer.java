@@ -113,7 +113,7 @@ public class NettyServer implements ApplicationContextAware,InitializingBean,Dis
             }
         }).start();
     }
-    
+    //启动netty服务端
     public void afterPropertiesSet() throws Exception {
         start();
     }

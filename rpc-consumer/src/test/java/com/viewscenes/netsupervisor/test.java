@@ -17,8 +17,9 @@ public class test {
 		map.put ("2","refrw");
 		map.put ("3","fefrw");
 		
-		List<String> list = map.entrySet ().stream ().filter (e-> e.getKey () == "1").
-			map (e->e.getValue ()).collect(Collectors.toList());
+		List<String> list = map.entrySet ().stream ().
+			filter (e-> (e.getValue ().equals ("refrw"))).
+			map (x->x.getValue ()).collect(Collectors.toList());
 		
 		System.out.print (map);
 		System.out.println (list);

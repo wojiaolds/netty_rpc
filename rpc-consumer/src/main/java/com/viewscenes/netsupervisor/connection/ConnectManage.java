@@ -21,7 +21,7 @@ public class ConnectManage{
     @Autowired
     NettyClient nettyClient;
 
-    Logger logger = LoggerFactory.getLogger(this.getClass());
+    Logger logger = LoggerFactory.getLogger(ConnectManage.class);
     private AtomicInteger roundRobin = new AtomicInteger(0);
     //服务名与所有channel的映射集合
 //    private ConcurrentHashMap<String,CopyOnWriteArrayList<Channel>> chlHashMap
@@ -32,11 +32,15 @@ public class ConnectManage{
     //所有SocketAddress和channel的映射集合
     private ConcurrentHashMap<Channel,String> channelNodes = new ConcurrentHashMap<>();
     
+    public void print(){
+        logger.info ("chlHashMap: {}"+chlHashMap);
+        logger.info ("channelNodes: {}"+channelNodes);
+    }
     //这里有待完善，根据服务名获取相应的地址。node对应服务名
     public  Channel loadBanlance(String serviceName) {
         List<Channel> channels =    chlHashMap.entrySet ().stream ()
-            .filter (e->e.getValue ()==serviceName)
-            .map(x->x.getKey ())
+            .filter (e->(e.getValue ().equals (serviceName)))
+            .map(e->e.getKey ())
             .collect(Collectors.toList ());
         if (channels.size()>0) {
             int size = channels.size();
@@ -53,8 +57,8 @@ public class ConnectManage{
             List<String> addressList = entry.getValue ();
             
             List<Channel> listChl =    chlHashMap.entrySet ().stream ()
-                .filter (e->e.getValue ()==entry.getKey ())
-                .map(x->x.getKey ())
+                .filter (e->(e.getValue ().equals (entry.getKey ())))
+                .map(e->e.getKey ())
                 .collect(Collectors.toList ());
             if(listChl == null) {
                 listChl = new ArrayList<>();
@@ -88,9 +92,10 @@ public class ConnectManage{
             for (final String serverNodeAddress : newAllServerNodeSet) {
                 Channel channel = null;
                 List<Channel> list = channelNodes.entrySet ().stream ()
-                    .filter (e->e.getValue ()==serverNodeAddress)
-                    .map(x->x.getKey ())
+                    .filter (e->e.getValue ().equals(serverNodeAddress))
+                    .map(e->e.getKey ())
                     .collect(Collectors.toList ());
+                logger.info ("List<Channel>: {}"+list);
                 if(list != null && !list.isEmpty ())
                     channel = list.get (0) ;
                 
