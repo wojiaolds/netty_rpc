@@ -1,5 +1,7 @@
 package com.viewscenes.netsupervisor.connection;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.viewscenes.netsupervisor.netty.client.NettyClient;
 import com.viewscenes.netsupervisor.netty.client.ThreadPool;
 import io.netty.channel.Channel;
@@ -30,7 +32,8 @@ public class ConnectManage{
         = new ConcurrentHashMap<>();
 //    private CopyOnWriteArrayList<Channel> channels = new CopyOnWriteArrayList<>();
     //所有SocketAddress和channel的映射集合
-    private ConcurrentHashMap<Channel,String> channelNodes = new ConcurrentHashMap<>();
+//    private ConcurrentHashMap<Channel,String> channelNodes = new ConcurrentHashMap<>();
+    BiMap<Channel,String> channelNodes = HashBiMap.create();
     
     public void print(){
         logger.info ("chlHashMap: {}"+chlHashMap);
@@ -91,14 +94,14 @@ public class ConnectManage{
     
             for (final String serverNodeAddress : newAllServerNodeSet) {
                 Channel channel = null;
-                List<Channel> list = channelNodes.entrySet ().stream ()
-                    .filter (e->e.getValue ().equals(serverNodeAddress))
-                    .map(e->e.getKey ())
-                    .collect(Collectors.toList ());
-                logger.info ("List<Channel>: {}"+list);
-                if(list != null && !list.isEmpty ())
-                    channel = list.get (0) ;
-                
+//                List<Channel> list = channelNodes.entrySet ().stream ()
+//                    .filter (e->e.getValue ().equals(serverNodeAddress))
+//                    .map(e->e.getKey ())
+//                    .collect(Collectors.toList ());
+//                logger.info ("List<Channel>: {}"+list);
+//                if(list != null && !list.isEmpty ())
+//                    channel = list.get (0) ;
+                channel = channelNodes.inverse().get(serverNodeAddress);
                 
                 if (channel!=null && channel.isOpen()){
                     logger.info("当前服务节点已存在,无需重新连接.{}",serverNodeAddress);
@@ -151,5 +154,6 @@ public class ConnectManage{
 //        SocketAddress remotePeer = channel.remoteAddress();
         channelNodes.remove(channel);
         chlHashMap.remove(channel);
+
     }
 }

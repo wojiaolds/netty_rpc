@@ -8,5 +8,6 @@ public class RpcConsumerApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(RpcConsumerApplication.class, args);
+
 	}
 }
